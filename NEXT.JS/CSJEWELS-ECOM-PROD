@@ -1,0 +1,48 @@
+# Redirect all HTTP (both www + non-www) → HTTPS non-www
+server {
+    listen 80;
+    server_name csjewels.com www.csjewels.com;
+    return 301 https://csjewels.com$request_uri;
+}
+
+# Redirect HTTPS www → HTTPS non-www
+server {
+    listen 443 ssl;
+    server_name www.csjewels.com;
+
+    ssl_certificate     /etc/nginx/ssl/FullCertificate.crt;
+    ssl_certificate_key /etc/nginx/ssl/*******privatekey.key;
+
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+
+    return 301 https://csjewels.com$request_uri;
+
+    access_log  /var/log/nginx/csjewels.access.log;
+    error_log   /var/log/nginx/csjewels.error.log;
+}
+
+# Main HTTPS site (non-www)
+server {
+    listen 443 ssl;
+    server_name csjewels.com;
+
+    ssl_certificate     /etc/nginx/ssl/FullCertificate.crt;
+    ssl_certificate_key /etc/nginx/ssl/*******privatekey.key;
+
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+
+    root /var/www/csjewels/public;
+    index index.php index.html;
+
+     location / {
+         proxy_pass http://localhost:3000;
+         proxy_http_version 1.1;
+         proxy_set_header Upgrade $http_upgrade;
+         proxy_set_header Connection 'upgrade';
+         proxy_set_header Host $host;
+         proxy_set_header X-Forwarded-Proto https;
+         proxy_cache_bypass $http_upgrade;
+     }
+}
